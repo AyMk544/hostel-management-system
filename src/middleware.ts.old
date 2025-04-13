@@ -1,0 +1,50 @@
+import { withAuth } from 'next-auth/middleware';
+import { NextResponse } from 'next/server';
+
+export default withAuth(
+  function middleware(req) {
+    const token = req.nextauth.token;
+    const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
+    const isApiRoute = req.nextUrl.pathname.startsWith("/api");
+    const isStudentApiRoute = req.nextUrl.pathname.startsWith("/api/student");
+    const isAdminApiRoute = req.nextUrl.pathname.startsWith("/api/admin");
+
+    // For admin routes (both API and pages)
+    if ((isAdminRoute || isAdminApiRoute) && token?.role !== "admin") {
+      if (isApiRoute) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
+    // For student API routes
+    if (isStudentApiRoute && !token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => {
+        // Allow the middleware to proceed to our handler
+        return true;
+      },
+    },
+  }
+);
+
+export const config = {
+  matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/api/student/:path*",
+    "/student/:path*"
+  ],
+}; 
