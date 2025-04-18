@@ -2,7 +2,6 @@ import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { db } from "@/db";
-import { users } from "@/db/schema";
 import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
@@ -10,7 +9,8 @@ declare module "next-auth" {
     user: {
       id: string;
       role: "admin" | "student";
-    } & DefaultSession["user"]
+      emailVerified?: Date | null;
+    } & DefaultSession["user"];
   }
 
   interface User {
@@ -18,6 +18,7 @@ declare module "next-auth" {
     email: string;
     name: string;
     role: "admin" | "student";
+    emailVerified?: Date | null;
   }
 }
 
@@ -27,7 +28,7 @@ export const authOptions: AuthOptions = {
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -35,7 +36,7 @@ export const authOptions: AuthOptions = {
         }
 
         const user = await db.query.users.findFirst({
-          where: (users, { eq }) => eq(users.email, credentials.email)
+          where: (users, { eq }) => eq(users.email, credentials.email),
         });
 
         if (!user || !user.password) {
@@ -51,14 +52,20 @@ export const authOptions: AuthOptions = {
           throw new Error("Invalid credentials");
         }
 
+        // Check if the user's email is verified (assuming emailVerified is a timestamp and falsy if not verified)
+        if (!user.emailVerified) {
+          throw new Error("Email not verified");
+        }
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role
+          role: user.role,
+          emailVerified: user.emailVerified,
         };
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -66,7 +73,8 @@ export const authOptions: AuthOptions = {
         return {
           ...token,
           id: user.id,
-          role: user.role
+          role: user.role,
+          emailVerified: user.emailVerified,
         };
       }
       return token;
@@ -77,16 +85,17 @@ export const authOptions: AuthOptions = {
         user: {
           ...session.user,
           id: token.sub as string,
-          role: token.role as "admin" | "student"
-        }
+          role: token.role as "admin" | "student",
+          emailVerified: token.emailVerified as Date | null,
+        },
       };
-    }
+    },
   },
   pages: {
-    signIn: "/login"
+    signIn: "/login",
   },
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET
-}; 
+  secret: process.env.NEXTAUTH_SECRET,
+};

@@ -154,9 +154,7 @@ export default function AdminDashboardPage() {
               className="rounded-xl border bg-white p-6 shadow-sm text-zinc-900"
             >
               <div className="flex items-center space-x-4">
-                <div
-                  className={`rounded-full p-2 ${card.color} bg-opacity-10`}
-                >
+                <div className={`rounded-full p-2 ${card.color} bg-opacity-10`}>
                   <Icon className={`h-6 w-6 ${card.color} text-white`} />
                 </div>
                 <div>
@@ -164,7 +162,8 @@ export default function AdminDashboardPage() {
                     {card.title}
                   </p>
                   <h3 className="text-2xl font-bold">
-                    {isLoading ? "..." : card.value}{card.suffix || ''}
+                    {isLoading ? "..." : card.value}
+                    {card.suffix || ""}
                   </h3>
                 </div>
               </div>
@@ -187,7 +186,9 @@ export default function AdminDashboardPage() {
             <div>
               <p className="font-medium">Resolved Queries (Last 7 days)</p>
               <p className="text-2xl font-bold">
-                {isLoading ? "..." : stats?.recentActivity?.resolvedQueries ?? 0}
+                {isLoading
+                  ? "..."
+                  : stats?.recentActivity?.resolvedQueries ?? 0}
               </p>
             </div>
           </div>
@@ -195,4 +196,4 @@ export default function AdminDashboardPage() {
       </div>
     </div>
   );
-} 
+}

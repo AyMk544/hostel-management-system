@@ -10,25 +10,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-  rollNo: z.string().regex(/^[A-Z]{3}\d{7}$/, "Invalid roll number format (e.g., IIB2023001)"),
-  course: z.string().min(2, "Course name is required"),
-  contactNo: z.string().regex(/^\d{10}$/, "Invalid contact number"),
-  dateOfBirth: z.string().refine((date) => {
-    const dob = new Date(date);
-    const now = new Date();
-    const age = now.getFullYear() - dob.getFullYear();
-    return age >= 16 && age <= 30;
-  }, "Age must be between 16 and 30 years"),
-  address: z.string().min(10, "Address must be at least 10 characters"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+    rollNo: z
+      .string()
+      .regex(
+        /^[A-Z]{3}\d{7}$/,
+        "Invalid roll number format (e.g., IIB2023001)"
+      ),
+    course: z.string().min(2, "Course name is required"),
+    contactNo: z.string().regex(/^\d{10}$/, "Invalid contact number"),
+    dateOfBirth: z.string().refine((date) => {
+      const dob = new Date(date);
+      const now = new Date();
+      const age = now.getFullYear() - dob.getFullYear();
+      return age >= 16 && age <= 30;
+    }, "Age must be between 16 and 30 years"),
+    address: z.string().min(10, "Address must be at least 10 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
@@ -48,6 +55,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     try {
       setIsLoading(true);
+      console.log("before fetch");
       setError(null);
 
       const response = await fetch("/api/register", {
@@ -56,12 +64,20 @@ export default function RegisterPage() {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+      console.log("result = ", result);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
+        throw new Error(result.message);
       }
 
-      router.push("/login?registered=true");
+      // Check if we have a redirect URL in the response
+      if (result.redirect) {
+        router.push(result.redirect); // Redirect to verify-request page
+      } else {
+        // Fallback to login page with success message
+        router.push("/login?registered=true");
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -127,7 +143,9 @@ export default function RegisterPage() {
                   {...register("password")}
                 />
                 {errors.password && (
-                  <p className="text-sm text-red-500">{errors.password.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -155,7 +173,9 @@ export default function RegisterPage() {
                   {...register("rollNo")}
                 />
                 {errors.rollNo && (
-                  <p className="text-sm text-red-500">{errors.rollNo.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.rollNo.message}
+                  </p>
                 )}
               </div>
 
@@ -168,7 +188,9 @@ export default function RegisterPage() {
                   {...register("course")}
                 />
                 {errors.course && (
-                  <p className="text-sm text-red-500">{errors.course.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.course.message}
+                  </p>
                 )}
               </div>
 
@@ -181,7 +203,9 @@ export default function RegisterPage() {
                   {...register("contactNo")}
                 />
                 {errors.contactNo && (
-                  <p className="text-sm text-red-500">{errors.contactNo.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.contactNo.message}
+                  </p>
                 )}
               </div>
 
@@ -209,7 +233,9 @@ export default function RegisterPage() {
                   {...register("address")}
                 />
                 {errors.address && (
-                  <p className="text-sm text-red-500">{errors.address.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.address.message}
+                  </p>
                 )}
               </div>
 
@@ -218,9 +244,7 @@ export default function RegisterPage() {
               )}
 
               <Button disabled={isLoading}>
-                {isLoading && (
-                  <div className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {isLoading && <div className="mr-2 h-4 w-4 animate-spin" />}
                 Register
               </Button>
             </div>
@@ -239,4 +263,4 @@ export default function RegisterPage() {
       </div>
     </div>
   );
-} 
+}

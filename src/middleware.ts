@@ -1,17 +1,42 @@
-import { withAuth } from 'next-auth/middleware';
-import { NextResponse } from 'next/server';
+import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
-    
+
+    // Define public routes
+    const isPublicRoute = pathname === "/api/register";
+
+    // Skip middleware for public routes
+    if (isPublicRoute) {
+      return NextResponse.next();
+    }
+
     // Check route types
     const isAdminRoute = pathname.startsWith("/admin");
     const isStudentRoute = pathname.startsWith("/student");
     const isApiRoute = pathname.startsWith("/api");
     const isAdminApiRoute = pathname.startsWith("/api/admin");
     const isStudentApiRoute = pathname.startsWith("/api/student");
+
+    // Check if email is verified
+    const isEmailVerified =
+      token?.emailVerified !== null && token?.emailVerified !== undefined;
+
+    // If email is not verified, restrict access to protected routes
+    if (!isEmailVerified && (isAdminRoute || isStudentRoute || isApiRoute)) {
+      if (isApiRoute) {
+        return NextResponse.json(
+          { error: "Email verification required" },
+          { status: 403 }
+        );
+      }
+      return NextResponse.redirect(
+        new URL("/auth/error?error=AccessDenied", req.url)
+      );
+    }
 
     // Admin routes require admin role
     if (isAdminRoute || isAdminApiRoute) {
@@ -22,7 +47,7 @@ export default withAuth(
         return NextResponse.redirect(new URL("/login", req.url));
       }
     }
-    
+
     // Student routes require authentication
     if (isStudentRoute || isStudentApiRoute) {
       if (!token) {
@@ -32,7 +57,7 @@ export default withAuth(
         return NextResponse.redirect(new URL("/login", req.url));
       }
     }
-    
+
     // General API routes require authentication
     if (isApiRoute && !isAdminApiRoute && !isStudentApiRoute) {
       if (!token) {
@@ -53,9 +78,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/student/:path*",
-    "/api/:path*"
-  ],
+  matcher: ["/admin/:path*", "/student/:path*", "/api/:path*"],
 };
