@@ -9,7 +9,7 @@ async function testEmailSending() {
     port: 465,
     auth: {
       user: "ayushmukkanwar2004@gmail.com",
-      pass: "kcnmsarlcbsppdkz",
+      pass: "",
     },
   });
 

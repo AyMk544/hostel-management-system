@@ -5,12 +5,15 @@ A modern web application for managing hostel operations, built with Next.js, Rea
 ## Features
 
 ### Admin Dashboard
+
 - **Student Management**
+
   - View all students in a searchable table
   - Add, edit, and view student details
   - Track room assignments
 
 - **Room Management**
+
   - Monitor room occupancy and availability
   - Manage room types and fees
   - Track room status (active/inactive)
@@ -21,12 +24,15 @@ A modern web application for managing hostel operations, built with Next.js, Rea
   - Respond to student queries
 
 ### Student Dashboard
+
 - **Personal Information**
+
   - View and update profile details
   - Check room assignment
   - Monitor attendance
 
 - **Payment Information**
+
   - Track hostel fees
   - View mess charges
   - Get payment due date notifications
@@ -39,6 +45,7 @@ A modern web application for managing hostel operations, built with Next.js, Rea
 ## Tech Stack
 
 - **Frontend**
+
   - Next.js 14 (App Router)
   - React 19
   - TypeScript
@@ -73,32 +80,44 @@ DATABASE_NAME=hostel_management
 # NextAuth Configuration
 NEXTAUTH_SECRET=your_secret_key
 NEXTAUTH_URL=http://localhost:3000
+
+# SMTP Configuration
+EMAIL_SERVICE="gmail"
+EMAIL_SERVER_PORT=465
+EMAIL_SERVER_USER=
+EMAIL_SERVER_PASSWORD=
+EMAIL_SERVER_SECURE=true
 ```
 
 ## Getting Started
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/hostel-management-system.git
 cd hostel-management-system
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Initialize the database:
+
 ```bash
 npm run db:init
 ```
 
 4. Run database migrations:
+
 ```bash
 npm run db:push
 ```
 
 5. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -108,6 +127,7 @@ The application will be available at `http://localhost:3000`
 ## Database Schema
 
 The application uses the following main tables:
+
 - `users` - Stores user authentication and role information
 - `student_profiles` - Contains detailed student information
 - `rooms` - Manages hostel room details
