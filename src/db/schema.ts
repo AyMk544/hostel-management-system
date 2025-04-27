@@ -46,6 +46,7 @@ export const rooms = mysqlTable("rooms", {
   capacity: int("capacity").notNull(),
   occupiedSeats: int("occupied_seats").notNull().default(0),
   floor: int("floor").notNull(),
+  block: varchar("block", { length: 100 }).notNull(),
   is_active: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),

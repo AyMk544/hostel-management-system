@@ -11,9 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Eye, PencilIcon } from "lucide-react";
+import { PencilIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 interface Student {
   id: string;
@@ -23,8 +24,8 @@ interface Student {
   course: string;
   contactNumber: string;
   roomNumber: string | null;
-  hostelFeeStatus?: 'pending' | 'partial' | 'paid';
-  messFeeStatus?: 'pending' | 'partial' | 'paid';
+  hostelFeeStatus?: "pending" | "partial" | "paid";
+  messFeeStatus?: "pending" | "partial" | "paid";
 }
 
 export default function StudentsPage() {
@@ -34,7 +35,7 @@ export default function StudentsPage() {
   const [stats, setStats] = useState({
     total: 0,
     withRoom: 0,
-    withoutRoom: 0
+    withoutRoom: 0,
   });
 
   useEffect(() => {
@@ -47,16 +48,15 @@ export default function StudentsPage() {
       if (!response.ok) throw new Error("Failed to fetch students");
       const data = await response.json();
       setStudents(data);
-      
+
       // Calculate stats
       const total = data.length;
       const withRoom = data.filter((s: Student) => s.roomNumber).length;
       setStats({
         total,
         withRoom,
-        withoutRoom: total - withRoom
+        withoutRoom: total - withRoom,
       });
-      
     } catch (error) {
       console.error("Error fetching students:", error);
     } finally {
@@ -64,10 +64,13 @@ export default function StudentsPage() {
     }
   };
 
-  const filteredStudents = students.filter(student => 
-    (student.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-    (student.rollNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-    (student.email?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+  const filteredStudents = students.filter(
+    (student) =>
+      (student.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (student.rollNumber?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (student.email?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
@@ -82,7 +85,9 @@ export default function StudentsPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-96">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-96">Loading...</div>
+    );
   }
 
   return (
@@ -90,7 +95,9 @@ export default function StudentsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Students
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
@@ -143,23 +150,36 @@ export default function StudentsPage() {
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.rollNumber}</TableCell>
                   <TableCell>{student.course}</TableCell>
-                  <TableCell>{student.roomNumber || "Not Assigned"}</TableCell>
                   <TableCell>
-                    <span className={getStatusColor(student.hostelFeeStatus || 'pending')}>
-                      {student.hostelFeeStatus?.toUpperCase() || "PENDING"}
-                    </span>
+                    <Badge
+                      variant={student.roomNumber ? "success" : "destructive"}
+                    >
+                      {student.roomNumber || "Not Assigned"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className={getStatusColor(student.messFeeStatus || 'pending')}>
+                    <Badge
+                      variant={
+                        student.hostelFeeStatus === "pending"
+                          ? "destructive"
+                          : "success"
+                      }
+                    >
+                      {student.hostelFeeStatus?.toUpperCase() || "PENDING"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        student.messFeeStatus === "pending"
+                          ? "destructive"
+                          : "success"
+                      }
+                    >
                       {student.messFeeStatus?.toUpperCase() || "PENDING"}
-                    </span>
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Link href={`/admin/students/${student.id}`}>
-                      <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
                     <Link href={`/admin/students/${student.id}/edit`}>
                       <Button variant="ghost" size="icon">
                         <PencilIcon className="h-4 w-4" />
@@ -174,4 +194,4 @@ export default function StudentsPage() {
       </Card>
     </div>
   );
-} 
+}

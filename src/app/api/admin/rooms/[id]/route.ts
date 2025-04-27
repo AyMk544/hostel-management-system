@@ -20,14 +20,11 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    
+
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get room details with student count
@@ -39,10 +36,7 @@ export async function GET(
     });
 
     if (!room) {
-      return NextResponse.json(
-        { error: "Room not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
     const formattedRoom = {
@@ -51,9 +45,14 @@ export async function GET(
       capacity: room.capacity,
       occupiedSeats: room.occupiedSeats,
       floor: room.floor,
-      block: "A", // Default block, you might want to add this to your schema
-      type: room.capacity <= 1 ? "single" : room.capacity <= 2 ? "double" : "triple",
-      is_active: room.is_active
+      block: room.block, // Default block, you might want to add this to your schema
+      type:
+        room.capacity <= 1
+          ? "single"
+          : room.capacity <= 2
+          ? "double"
+          : "triple",
+      is_active: room.is_active,
     };
 
     return NextResponse.json(formattedRoom);
@@ -73,14 +72,11 @@ export async function PUT(
 ) {
   try {
     const { id } = await context.params;
-    
+
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -92,10 +88,7 @@ export async function PUT(
     });
 
     if (!existingRoom) {
-      return NextResponse.json(
-        { error: "Room not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
     // Check if new room number conflicts with existing ones
@@ -152,14 +145,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-    
+
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if room exists and has no occupants
@@ -168,10 +158,7 @@ export async function DELETE(
     });
 
     if (!room) {
-      return NextResponse.json(
-        { error: "Room not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
     if (room.occupiedSeats > 0) {
@@ -182,9 +169,7 @@ export async function DELETE(
     }
 
     // Delete room
-    await db
-      .delete(rooms)
-      .where(eq(rooms.id, id));
+    await db.delete(rooms).where(eq(rooms.id, id));
 
     return NextResponse.json({ message: "Room deleted successfully" });
   } catch (error) {
@@ -194,4 +179,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

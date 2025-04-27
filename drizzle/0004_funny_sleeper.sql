@@ -1,0 +1,1 @@
+ALTER TABLE `rooms` ADD `block` varchar(100) NOT NULL DEFAULT 'A';

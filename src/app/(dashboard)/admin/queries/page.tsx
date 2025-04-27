@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -29,8 +27,6 @@ interface Query {
 }
 
 export default function QueriesPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [queries, setQueries] = useState<Query[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -38,7 +34,7 @@ export default function QueriesPage() {
     total: 0,
     pending: 0,
     inProgress: 0,
-    resolved: 0
+    resolved: 0,
   });
 
   useEffect(() => {
@@ -51,20 +47,23 @@ export default function QueriesPage() {
       if (!response.ok) throw new Error("Failed to fetch queries");
       const data = await response.json();
       setQueries(data);
-      
+
       // Calculate stats
       const total = data.length;
       const pending = data.filter((q: Query) => q.status === "pending").length;
-      const inProgress = data.filter((q: Query) => q.status === "in_progress").length;
-      const resolved = data.filter((q: Query) => q.status === "resolved").length;
-      
+      const inProgress = data.filter(
+        (q: Query) => q.status === "in_progress"
+      ).length;
+      const resolved = data.filter(
+        (q: Query) => q.status === "resolved"
+      ).length;
+
       setStats({
         total,
         pending,
         inProgress,
-        resolved
+        resolved,
       });
-      
     } catch (error) {
       console.error("Error fetching queries:", error);
     } finally {
@@ -72,10 +71,11 @@ export default function QueriesPage() {
     }
   };
 
-  const filteredQueries = queries.filter(query => 
-    query.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    query.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    query.studentRollNo.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredQueries = queries.filter(
+    (query) =>
+      query.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      query.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      query.studentRollNo.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getStatusColor = (status: Query["status"]) => {
@@ -92,7 +92,9 @@ export default function QueriesPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-96">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-96">Loading...</div>
+    );
   }
 
   return (
@@ -111,7 +113,9 @@ export default function QueriesPage() {
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">{stats.pending}</div>
+            <div className="text-2xl font-bold text-yellow-500">
+              {stats.pending}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -119,7 +123,9 @@ export default function QueriesPage() {
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-500">{stats.inProgress}</div>
+            <div className="text-2xl font-bold text-blue-500">
+              {stats.inProgress}
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -127,7 +133,9 @@ export default function QueriesPage() {
             <CardTitle className="text-sm font-medium">Resolved</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">{stats.resolved}</div>
+            <div className="text-2xl font-bold text-green-500">
+              {stats.resolved}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -161,7 +169,9 @@ export default function QueriesPage() {
                   <TableCell>{query.studentName}</TableCell>
                   <TableCell>{query.studentRollNo}</TableCell>
                   <TableCell>
-                    <span className={`capitalize ${getStatusColor(query.status)}`}>
+                    <span
+                      className={`capitalize ${getStatusColor(query.status)}`}
+                    >
                       {query.status.replace("_", " ")}
                     </span>
                   </TableCell>
@@ -183,4 +193,4 @@ export default function QueriesPage() {
       </Card>
     </div>
   );
-} 
+}

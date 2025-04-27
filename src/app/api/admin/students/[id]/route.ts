@@ -22,10 +22,7 @@ export async function GET(
 
     // Check if user is authenticated and is an admin
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get student details
@@ -45,10 +42,7 @@ export async function GET(
       .where(eq(users.id, id));
 
     if (!student) {
-      return NextResponse.json(
-        { error: "Student not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
     return NextResponse.json(student);
@@ -78,10 +72,7 @@ export async function PUT(
 
     // Check if user is authenticated and is an admin
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { roomId } = await request.json();
@@ -96,26 +87,31 @@ export async function PUT(
 
       // If student had a previous room, decrement its occupancy
       // For decrementing occupancy
-if (currentProfile?.currentRoomId) {
-  console.log("Decrementing occupancy for room:", currentProfile.currentRoomId);
-  
-  await db.update(rooms)
-    .set({ 
-      occupiedSeats: sql`GREATEST(occupied_seats - 1, 0)` 
-    })
-    .where(eq(rooms.id, currentProfile.currentRoomId));
-}
+      if (currentProfile?.currentRoomId) {
+        console.log(
+          "Decrementing occupancy for room:",
+          currentProfile.currentRoomId
+        );
 
-// For incrementing occupancy
-if (roomId) {
-  console.log("Incrementing occupancy for room:", roomId);
-  
-  await db.update(rooms)
-    .set({ 
-      occupiedSeats: sql`occupied_seats + 1` 
-    })
-    .where(eq(rooms.id, roomId));
-}
+        await db
+          .update(rooms)
+          .set({
+            occupiedSeats: sql`GREATEST(occupied_seats - 1, 0)`,
+          })
+          .where(eq(rooms.id, currentProfile.currentRoomId));
+      }
+
+      // For incrementing occupancy
+      if (roomId) {
+        console.log("Incrementing occupancy for room:", roomId);
+
+        await db
+          .update(rooms)
+          .set({
+            occupiedSeats: sql`occupied_seats + 1`,
+          })
+          .where(eq(rooms.id, roomId));
+      }
 
       // Update student's room assignment
       await db
@@ -131,7 +127,10 @@ if (roomId) {
   } catch (error: any) {
     console.error("[STUDENT_UPDATE]", error);
     return NextResponse.json(
-      { error: "Internal server error", details: error.message || String(error) },
+      {
+        error: "Internal server error",
+        details: error.message || String(error),
+      },
       { status: 500 }
     );
   }
@@ -154,59 +153,51 @@ export async function DELETE(
 
     // Check if user is authenticated and is an admin
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    try {
-      // 1. Get the student's room assignment
-      const [studentProfile] = await db
-        .select({ roomId: studentProfiles.roomId })
-        .from(studentProfiles)
-        .where(eq(studentProfiles.userId, id));
+    // Execute all database operations within a transaction
+    await db.transaction(async (tx) => {
+      // 1. Get the student's room assignment first
+      const studentProfile = await tx.query.studentProfiles.findFirst({
+        where: (studentProfiles, { eq }) => eq(studentProfiles.userId, id),
+      });
 
-      // 2. If student has a room, decrement the room's occupiedSeats
-      if (studentProfile?.roomId) {
-        console.log("Decrementing occupancy for room:", studentProfile.roomId);
-        
-        // Use completely raw SQL
-        await db.execute(sql.raw(
-          `UPDATE rooms SET occupied_seats = GREATEST(occupied_seats - 1, 0) 
-           WHERE id = '${studentProfile.roomId}'`
-        ));
+      if (!studentProfile) {
+        throw new Error(`No student profile found for user ID: ${id}`);
+      }
+
+      // 2. If student has a room, decrement the room's occupiedSeats safely
+      if (studentProfile.roomId) {
+        await tx
+          .update(rooms)
+          .set({
+            occupiedSeats: sql`GREATEST(${rooms.occupiedSeats} - 1, 0)`,
+          })
+          .where(eq(rooms.id, studentProfile.roomId));
       }
 
       // 3. Delete related payments
-      await db
-        .delete(payments)
-        .where(eq(payments.studentId, id));
-        
+      await tx.delete(payments).where(eq(payments.studentId, id));
+
       // 4. Delete related queries/issues
-      await db
-        .delete(queries)
-        .where(eq(queries.studentId, id));
+      await tx.delete(queries).where(eq(queries.studentId, id));
 
       // 5. Delete student profile
-      await db
-        .delete(studentProfiles)
-        .where(eq(studentProfiles.userId, id));
+      await tx.delete(studentProfiles).where(eq(studentProfiles.userId, id));
 
       // 6. Delete user account
-      await db
-        .delete(users)
-        .where(eq(users.id, id));
+      await tx.delete(users).where(eq(users.id, id));
+    });
 
-      return NextResponse.json({ message: "Student deleted successfully" });
-    } catch (innerError: any) {
-      console.error("Error in student deletion:", innerError);
-      throw innerError;
-    }
+    return NextResponse.json({ message: "Student deleted successfully" });
   } catch (error: any) {
     console.error("[STUDENT_DELETE]", error);
     return NextResponse.json(
-      { error: "Internal server error", details: error.message || String(error) },
+      {
+        error: "Internal server error",
+        details: error.message || String(error),
+      },
       { status: 500 }
     );
   }

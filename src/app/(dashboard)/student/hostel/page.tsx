@@ -8,7 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Bed, Wifi, Coffee, Utensils, DoorClosed, Users, IndianRupee, AlertCircle, Building } from "lucide-react";
+import {
+  Bed,
+  Wifi,
+  Coffee,
+  Utensils,
+  DoorClosed,
+  Users,
+  IndianRupee,
+  AlertCircle,
+  Building,
+} from "lucide-react";
 import { fetchWithAuth } from "@/lib/api-utils";
 
 interface HostelDetails {
@@ -45,7 +55,9 @@ export default function HostelDetailsPage() {
       setError(null);
     } catch (error) {
       console.error("Error fetching hostel details:", error);
-      setError(error instanceof Error ? error.message : "Failed to load hostel details");
+      setError(
+        error instanceof Error ? error.message : "Failed to load hostel details"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -78,12 +90,16 @@ export default function HostelDetailsPage() {
         <Card>
           <CardContent className="p-6 text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-red-500">No Room Assigned</h2>
+            <h2 className="text-xl font-semibold mb-2 text-red-500">
+              No Room Assigned
+            </h2>
             <p className="text-gray-500 mb-4">
-              You haven't been assigned a room yet. Please contact the hostel administration for room allocation.
+              You haven't been assigned a room yet. Please contact the hostel
+              administration for room allocation.
             </p>
             <div className="text-sm text-gray-400">
-              Once you are assigned a room, you will be able to view your hostel details here.
+              Once you are assigned a room, you will be able to view your hostel
+              details here.
             </div>
           </CardContent>
         </Card>
@@ -96,9 +112,7 @@ export default function HostelDetailsPage() {
       <div className="p-6">
         <Card>
           <CardContent className="p-6">
-            <p className="text-center text-gray-500">
-              {error}
-            </p>
+            <p className="text-center text-gray-500">{error}</p>
           </CardContent>
         </Card>
       </div>
@@ -153,7 +167,9 @@ export default function HostelDetailsPage() {
               <DoorClosed className="h-5 w-5 text-gray-500" />
               <div>
                 <p className="text-sm font-medium">Room Type</p>
-                <p className="text-sm text-gray-500">{details.roomType || getRoomType(details.capacity || 0)}</p>
+                <p className="text-sm text-gray-500">
+                  {details.roomType || getRoomType(details.capacity || 0)}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -169,7 +185,9 @@ export default function HostelDetailsPage() {
               <Building className="h-5 w-5 text-gray-500" />
               <div>
                 <p className="text-sm font-medium">Block & Floor</p>
-                <p className="text-sm text-gray-500">{details.blockName}, Floor {details.floor}</p>
+                <p className="text-sm text-gray-500">
+                  {details.blockName}, Floor {details.floor}
+                </p>
               </div>
             </div>
           </div>
@@ -184,21 +202,32 @@ export default function HostelDetailsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="p-4 rounded-md bg-gray-50">
+            <div className="p-4 rounded-md ">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Base Hostel Fee:</span>
-                <span>₹{details.fees?.baseHostelFee.toLocaleString() || "N/A"}</span>
+                <span>
+                  ₹{details.fees?.baseHostelFee.toLocaleString() || "N/A"}
+                </span>
               </div>
               <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">{details.roomType || "Room"} Fee:</span>
-                <span>₹{details.fees?.roomTypeFee.toLocaleString() || "N/A"}</span>
+                <span className="font-medium">
+                  {details.roomType || "Room"} Fee:
+                </span>
+                <span>
+                  ₹{details.fees?.roomTypeFee.toLocaleString() || "N/A"}
+                </span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                 <span className="font-medium">Total Fee:</span>
-                <span className="font-bold text-blue-600">₹{details.fees?.totalFees.toLocaleString() || "N/A"}</span>
+                <span className="font-bold text-blue-600">
+                  ₹{details.fees?.totalFees.toLocaleString() || "N/A"}
+                </span>
               </div>
             </div>
-            <p className="text-xs text-gray-500">* Fees are for the current semester and may be revised for future semesters.</p>
+            <p className="text-xs text-gray-500">
+              * Fees are for the current semester and may be revised for future
+              semesters.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -214,7 +243,7 @@ export default function HostelDetailsPage() {
             {details.facilities?.map((facility, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+                className="flex items-center space-x-3 p-3  rounded-lg"
               >
                 {getFacilityIcon(facility)}
                 <span className="text-sm font-medium">{facility}</span>
@@ -244,4 +273,4 @@ export default function HostelDetailsPage() {
       </Card>
     </div>
   );
-} 
+}

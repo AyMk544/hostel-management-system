@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Eye, PencilIcon, X } from "lucide-react";
+import { Eye, PencilIcon, Plus, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import {
@@ -55,7 +55,7 @@ export default function RoomsPage() {
     total: 0,
     occupied: 0,
     available: 0,
-    occupancyRate: 0
+    occupancyRate: 0,
   });
 
   useEffect(() => {
@@ -68,20 +68,25 @@ export default function RoomsPage() {
       if (!response.ok) throw new Error("Failed to fetch rooms");
       const data = await response.json();
       setRooms(data);
-      
+
       // Calculate stats
       const total = data.length;
       const occupied = data.filter((r: Room) => r.occupiedSeats > 0).length;
-      const totalCapacity = data.reduce((acc: number, room: Room) => acc + room.capacity, 0);
-      const totalOccupancy = data.reduce((acc: number, room: Room) => acc + room.occupiedSeats, 0);
-      
+      const totalCapacity = data.reduce(
+        (acc: number, room: Room) => acc + room.capacity,
+        0
+      );
+      const totalOccupancy = data.reduce(
+        (acc: number, room: Room) => acc + room.occupiedSeats,
+        0
+      );
+
       setStats({
         total,
         occupied,
         available: total - occupied,
-        occupancyRate: Math.round((totalOccupancy / totalCapacity) * 100)
+        occupancyRate: Math.round((totalOccupancy / totalCapacity) * 100),
       });
-      
     } catch (error) {
       console.error("Error fetching rooms:", error);
     } finally {
@@ -90,27 +95,39 @@ export default function RoomsPage() {
   };
 
   // Get unique values for filters
-  const blocks = Array.from(new Set(rooms.map(room => room.block))).sort();
-  const floors = Array.from(new Set(rooms.map(room => room.floor))).sort((a, b) => a - b);
-  const types = Array.from(new Set(rooms.map(room => room.type))).sort();
+  const blocks = Array.from(new Set(rooms.map((room) => room.block))).sort();
+  const floors = Array.from(new Set(rooms.map((room) => room.floor))).sort(
+    (a, b) => a - b
+  );
+  const types = Array.from(new Set(rooms.map((room) => room.type))).sort();
 
-  const filteredRooms = rooms.filter(room => {
-    const matchesSearch = 
+  const filteredRooms = rooms.filter((room) => {
+    const matchesSearch =
       room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       room.block.toLowerCase().includes(searchQuery.toLowerCase()) ||
       room.type.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesBlock = !filters.block || room.block === filters.block;
-    const matchesFloor = !filters.floor || room.floor === parseInt(filters.floor);
+    const matchesFloor =
+      !filters.floor || room.floor === parseInt(filters.floor);
     const matchesType = !filters.type || room.type === filters.type;
-    const matchesStatus = !filters.status || (
-      filters.status === "available" ? room.occupiedSeats === 0 :
-      filters.status === "full" ? room.occupiedSeats === room.capacity :
-      filters.status === "partial" ? (room.occupiedSeats > 0 && room.occupiedSeats < room.capacity) :
-      true
-    );
+    const matchesStatus =
+      !filters.status ||
+      (filters.status === "available"
+        ? room.occupiedSeats === 0
+        : filters.status === "full"
+        ? room.occupiedSeats === room.capacity
+        : filters.status === "partial"
+        ? room.occupiedSeats > 0 && room.occupiedSeats < room.capacity
+        : true);
 
-    return matchesSearch && matchesBlock && matchesFloor && matchesType && matchesStatus;
+    return (
+      matchesSearch &&
+      matchesBlock &&
+      matchesFloor &&
+      matchesType &&
+      matchesStatus
+    );
   });
 
   const clearFilters = () => {
@@ -123,7 +140,9 @@ export default function RoomsPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-96">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-96">Loading...</div>
+    );
   }
 
   return (
@@ -139,7 +158,9 @@ export default function RoomsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Occupied Rooms</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Occupied Rooms
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.occupied}</div>
@@ -147,15 +168,21 @@ export default function RoomsPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Rooms</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Available Rooms
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.available}</div>
+            <div className="text-2xl font-bold text-emerald-400">
+              {stats.available}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Occupancy Rate
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.occupancyRate}%</div>
@@ -171,21 +198,29 @@ export default function RoomsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <Link href="/admin/rooms/add" className="text-zinc-900 cursor-pointer">
-            <Button className="cursor-pointer">Add Room</Button>
+          <Link
+            href="/admin/rooms/add"
+            className="text-zinc-900 cursor-pointer"
+          >
+            <button className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 rounded-md px-4 py-2 text-white flex items-center font-semibold">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Room
+            </button>
           </Link>
         </div>
 
         <div className="flex flex-wrap gap-4 items-center">
           <Select
             value={filters.block}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, block: value }))}
+            onValueChange={(value) =>
+              setFilters((prev) => ({ ...prev, block: value }))
+            }
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Block" />
             </SelectTrigger>
             <SelectContent>
-              {blocks.map(block => (
+              {blocks.map((block) => (
                 <SelectItem key={block} value={block} className="bg-zinc-900">
                   Block {block}
                 </SelectItem>
@@ -195,14 +230,20 @@ export default function RoomsPage() {
 
           <Select
             value={filters.floor}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, floor: value }))}
+            onValueChange={(value) =>
+              setFilters((prev) => ({ ...prev, floor: value }))
+            }
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Floor" />
             </SelectTrigger>
             <SelectContent>
-              {floors.map(floor => (
-                <SelectItem key={floor} value={floor.toString()} className="bg-zinc-900">
+              {floors.map((floor) => (
+                <SelectItem
+                  key={floor}
+                  value={floor.toString()}
+                  className="bg-zinc-900"
+                >
                   Floor {floor}
                 </SelectItem>
               ))}
@@ -211,13 +252,15 @@ export default function RoomsPage() {
 
           <Select
             value={filters.type}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
+            onValueChange={(value) =>
+              setFilters((prev) => ({ ...prev, type: value }))
+            }
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Room Type" />
             </SelectTrigger>
             <SelectContent>
-              {types.map(type => (
+              {types.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type.charAt(0).toUpperCase() + type.slice(1)}
                 </SelectItem>
@@ -227,7 +270,9 @@ export default function RoomsPage() {
 
           <Select
             value={filters.status}
-            onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+            onValueChange={(value) =>
+              setFilters((prev) => ({ ...prev, status: value }))
+            }
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
@@ -239,7 +284,10 @@ export default function RoomsPage() {
             </SelectContent>
           </Select>
 
-          {(filters.block || filters.floor || filters.type || filters.status) && (
+          {(filters.block ||
+            filters.floor ||
+            filters.type ||
+            filters.status) && (
             <Button variant="ghost" onClick={clearFilters} className="h-10">
               <X className="h-4 w-4 mr-2" />
               Clear Filters
@@ -248,7 +296,8 @@ export default function RoomsPage() {
 
           <div className="ml-auto">
             <Badge variant="secondary">
-              {filteredRooms.length} room{filteredRooms.length !== 1 ? 's' : ''} found
+              {filteredRooms.length} room{filteredRooms.length !== 1 ? "s" : ""}{" "}
+              found
             </Badge>
           </div>
         </div>
@@ -271,24 +320,27 @@ export default function RoomsPage() {
             <TableBody>
               {filteredRooms.map((room) => (
                 <TableRow key={room.id}>
-                  <TableCell className="font-medium">{room.roomNumber}</TableCell>
+                  <TableCell className="font-medium">
+                    {room.roomNumber}
+                  </TableCell>
                   <TableCell>{room.floor}</TableCell>
                   <TableCell>Block {room.block}</TableCell>
                   <TableCell className="capitalize">{room.type}</TableCell>
-                  <TableCell>{room.occupiedSeats} / {room.capacity}</TableCell>
                   <TableCell>
-                    <Badge variant={room.is_active ? "default" : "secondary"}>
+                    {room.occupiedSeats} / {room.capacity}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={room.is_active ? "success" : "secondary"}>
                       {room.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Link href={`/admin/rooms/${room.id}`}>
-                      <Button variant="ghost" size="icon" className="cursor-pointer">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
                     <Link href={`/admin/rooms/${room.id}/edit`}>
-                      <Button variant="ghost" size="icon" className="cursor-pointer">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="cursor-pointer"
+                      >
                         <PencilIcon className="h-4 w-4" />
                       </Button>
                     </Link>
@@ -301,4 +353,4 @@ export default function RoomsPage() {
       </Card>
     </div>
   );
-} 
+}

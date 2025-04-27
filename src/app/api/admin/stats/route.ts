@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
 import { users, rooms, queries } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // GET /api/admin/stats - Get dashboard statistics
 export async function GET() {
@@ -11,10 +11,7 @@ export async function GET() {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get total students count
@@ -44,9 +41,10 @@ export async function GET() {
       .from(queries);
 
     // Calculate occupancy rate
-    const occupancyRate = roomsStats.totalCapacity > 0
-      ? (roomsStats.totalOccupied / roomsStats.totalCapacity) * 100
-      : 0;
+    const occupancyRate =
+      roomsStats.totalCapacity > 0
+        ? (roomsStats.totalOccupied / roomsStats.totalCapacity) * 100
+        : 0;
 
     // Get recent activity counts (last 7 days)
     const sevenDaysAgo = new Date();
@@ -69,7 +67,8 @@ export async function GET() {
         active: roomsStats.activeRooms,
         totalCapacity: roomsStats.totalCapacity || 0,
         occupied: roomsStats.totalOccupied || 0,
-        available: (roomsStats.totalCapacity || 0) - (roomsStats.totalOccupied || 0),
+        available:
+          (roomsStats.totalCapacity || 0) - (roomsStats.totalOccupied || 0),
         occupancyRate: Math.round(occupancyRate * 100) / 100,
       },
       queries: {
@@ -90,4 +89,104 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}
+
+export async function getStatsDirectly() {
+  try {
+    // Get total students count
+    const [studentsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.role, "student"));
+
+    // Get rooms statistics using MySQL compatible syntax
+    const [roomsStats] = await db
+      .select({
+        totalRooms: sql<number>`count(*)`,
+        totalCapacity: sql<number>`sum(${rooms.capacity})`,
+        totalOccupied: sql<number>`sum(${rooms.occupiedSeats})`,
+        activeRooms: sql<number>`sum(case when ${rooms.is_active} = true then 1 else 0 end)`,
+      })
+      .from(rooms);
+
+    // Get queries statistics using MySQL compatible syntax
+    const [queriesStats] = await db
+      .select({
+        totalQueries: sql<number>`count(*)`,
+        pendingQueries: sql<number>`sum(case when ${queries.status} = 'pending' then 1 else 0 end)`,
+        inProgressQueries: sql<number>`sum(case when ${queries.status} = 'in_progress' then 1 else 0 end)`,
+        resolvedQueries: sql<number>`sum(case when ${queries.status} = 'resolved' then 1 else 0 end)`,
+      })
+      .from(queries);
+
+    // Calculate occupancy rate
+    const occupancyRate =
+      roomsStats.totalCapacity > 0
+        ? (roomsStats.totalOccupied / roomsStats.totalCapacity) * 100
+        : 0;
+
+    // Get recent activity counts (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Get recent activity using MySQL compatible syntax
+    const [recentActivity] = await db
+      .select({
+        newQueries: sql<number>`sum(case when ${queries.createdAt} >= ${sevenDaysAgo} then 1 else 0 end)`,
+        resolvedQueries: sql<number>`sum(case when ${queries.status} = 'resolved' and ${queries.updatedAt} >= ${sevenDaysAgo} then 1 else 0 end)`,
+      })
+      .from(queries);
+
+    return {
+      students: {
+        total: studentsCount.count,
+      },
+      rooms: {
+        total: roomsStats.totalRooms,
+        active: roomsStats.activeRooms,
+        totalCapacity: roomsStats.totalCapacity || 0,
+        occupied: roomsStats.totalOccupied || 0,
+        available:
+          (roomsStats.totalCapacity || 0) - (roomsStats.totalOccupied || 0),
+        occupancyRate: Math.round(occupancyRate * 100) / 100,
+      },
+      queries: {
+        total: queriesStats.totalQueries || 0,
+        pending: queriesStats.pendingQueries || 0,
+        inProgress: queriesStats.inProgressQueries || 0,
+        resolved: queriesStats.resolvedQueries || 0,
+      },
+      recentActivity: {
+        newQueries: recentActivity.newQueries || 0,
+        resolvedQueries: recentActivity.resolvedQueries || 0,
+      },
+    };
+  } catch (error) {
+    console.error("[STATS_GET_DIRECTLY]", error);
+
+    // Return default stats in case of error
+    return {
+      students: {
+        total: 0,
+      },
+      rooms: {
+        total: 0,
+        active: 0,
+        totalCapacity: 0,
+        occupied: 0,
+        available: 0,
+        occupancyRate: 0,
+      },
+      queries: {
+        total: 0,
+        pending: 0,
+        inProgress: 0,
+        resolved: 0,
+      },
+      recentActivity: {
+        newQueries: 0,
+        resolvedQueries: 0,
+      },
+    };
+  }
+}

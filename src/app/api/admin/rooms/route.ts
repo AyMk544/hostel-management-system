@@ -12,6 +12,7 @@ const roomSchema = z.object({
   capacity: z.number().min(1).max(4),
   floor: z.number().min(1),
   is_active: z.boolean().optional(),
+  block: z.string().min(1),
 });
 
 // GET /api/admin/rooms - Get all rooms
@@ -20,10 +21,7 @@ export async function GET() {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const allRooms = await db.query.rooms.findMany({
@@ -32,15 +30,20 @@ export async function GET() {
       },
     });
 
-    const formattedRooms = allRooms.map(room => ({
+    const formattedRooms = allRooms.map((room) => ({
       id: room.id,
       roomNumber: room.roomNumber,
       capacity: room.capacity,
       occupiedSeats: room.occupiedSeats,
       floor: room.floor,
-      block: "A", // Default block, you might want to add this to your schema
-      type: room.capacity <= 1 ? "single" : room.capacity <= 2 ? "double" : "triple",
-      is_active: room.is_active
+      block: room.block,
+      type:
+        room.capacity <= 1
+          ? "single"
+          : room.capacity <= 2
+          ? "double"
+          : "triple",
+      is_active: room.is_active,
     }));
 
     return NextResponse.json(formattedRooms);
@@ -59,10 +62,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -115,10 +115,7 @@ export async function PUT(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const url = new URL(req.url);
@@ -140,10 +137,7 @@ export async function PUT(req: Request) {
     });
 
     if (!existingRoom) {
-      return NextResponse.json(
-        { error: "Room not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
     // Check if new room number conflicts with existing ones
@@ -199,10 +193,7 @@ export async function DELETE(req: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const url = new URL(req.url);
@@ -221,10 +212,7 @@ export async function DELETE(req: Request) {
     });
 
     if (!room) {
-      return NextResponse.json(
-        { error: "Room not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
     if (room.occupiedSeats > 0) {
@@ -235,9 +223,7 @@ export async function DELETE(req: Request) {
     }
 
     // Delete room
-    await db
-      .delete(rooms)
-      .where(eq(rooms.id, id));
+    await db.delete(rooms).where(eq(rooms.id, id));
 
     return NextResponse.json({ message: "Room deleted successfully" });
   } catch (error) {
@@ -247,4 +233,4 @@ export async function DELETE(req: Request) {
       { status: 500 }
     );
   }
-} 
+}

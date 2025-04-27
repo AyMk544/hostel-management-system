@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
-import { users, studentProfiles } from "@/db/schema";
+import { users, studentProfiles, rooms } from "@/db/schema";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { verificationTokens } from "@/db/schema";
+import { eq, and, lt } from "drizzle-orm";
 
 const registerSchema = z.object({
   name: z.string().min(2),
@@ -47,6 +48,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch an available room
+    const availableRoom = await db.query.rooms.findFirst({
+      where: (rooms, { eq, lt }) =>
+        and(eq(rooms.is_active, true), lt(rooms.occupiedSeats, rooms.capacity)),
+    });
+
     // Hash password
     const hashedPassword = await hash(data.password, 12);
 
@@ -63,28 +70,41 @@ export async function POST(req: Request) {
         emailVerified: null, // Initially null until verified
       });
 
-      // Create student profile
-      await tx.insert(studentProfiles).values({
-        id: uuidv4(),
-        userId: userId,
-        rollNo: data.rollNo,
-        course: data.course,
-        contactNo: data.contactNo,
-        dateOfBirth: new Date(data.dateOfBirth),
-        address: data.address,
-      });
+      // Create student profile with room assignment
+      if (availableRoom) {
+        await tx.insert(studentProfiles).values({
+          id: uuidv4(),
+          userId: userId,
+          rollNo: data.rollNo,
+          course: data.course,
+          contactNo: data.contactNo,
+          dateOfBirth: new Date(data.dateOfBirth),
+          address: data.address,
+          roomId: availableRoom.id, // Assign the room ID
+        });
+
+        // Update the occupied seats count in the room
+        await tx
+          .update(rooms)
+          .set({
+            occupiedSeats: availableRoom.occupiedSeats + 1,
+          })
+          .where(eq(rooms.id, availableRoom.id));
+      } else {
+        await tx.insert(studentProfiles).values({
+          id: uuidv4(),
+          userId: userId,
+          rollNo: data.rollNo,
+          course: data.course,
+          contactNo: data.contactNo,
+          dateOfBirth: new Date(data.dateOfBirth),
+          address: data.address,
+        });
+      }
     });
 
     // Send verification email
-    // Note: You can't use React hooks in API routes, so we need a different approach
-    // We will use a server-side version of sending verification email
-
-    // Option 1: Use a server action to trigger the email provider
     try {
-      // This approach requires a server action to be called from the API route
-      // Create a separate endpoint or use the email provider directly
-
-      // Calling a custom email verification function (you'll need to implement this)
       const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
       await sendVerificationEmail(data.email, baseUrl);
 
@@ -124,13 +144,11 @@ export async function POST(req: Request) {
 }
 
 // Create a helper function to send verification emails
-// You will need to implement this function
 async function sendVerificationEmail(email: string, baseUrl: string) {
   // Generate a token for this email
   const token = uuidv4();
 
   // Store the token in your database with an expiry time
-  // You need to create a verification_tokens table or collection
   await db.transaction(async (tx) => {
     // Add verification token to database
     await tx.insert(verificationTokens).values({

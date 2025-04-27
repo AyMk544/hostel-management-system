@@ -33,9 +33,7 @@ export default withAuth(
           { status: 403 }
         );
       }
-      return NextResponse.redirect(
-        new URL("/auth/error?error=AccessDenied", req.url)
-      );
+      return NextResponse.redirect(new URL("/register", req.url));
     }
 
     // Admin routes require admin role
