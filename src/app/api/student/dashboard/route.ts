@@ -10,10 +10,7 @@ export async function GET() {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get student profile with user information
@@ -21,8 +18,9 @@ export async function GET() {
       where: (profiles, { eq }) => eq(profiles.userId, session.user.id),
       with: {
         user: true,
-        room: true
-      }
+        room: true,
+        course: true,
+      },
     });
 
     if (!student) {
@@ -34,10 +32,11 @@ export async function GET() {
 
     // Get pending queries count
     const pendingQueries = await db.query.queries.findMany({
-      where: (queries, { and, eq }) => and(
-        eq(queries.studentId, session.user.id),
-        eq(queries.status, "pending")
-      )
+      where: (queries, { and, eq }) =>
+        and(
+          eq(queries.studentId, session.user.id),
+          eq(queries.status, "pending")
+        ),
     });
 
     // Get current month's payments
@@ -54,10 +53,12 @@ export async function GET() {
 
     // For debugging
     console.log("Latest fee structure found:", latestFeeStructure);
-    
+
     // Add more detailed logging
     if (!latestFeeStructure) {
-      console.log("No fee structure found, using default values for fee calculations");
+      console.log(
+        "No fee structure found, using default values for fee calculations"
+      );
     }
 
     // Calculate room fee based on room type
@@ -70,7 +71,7 @@ export async function GET() {
 
     if (student.room) {
       const capacity = student.room.capacity;
-      
+
       if (latestFeeStructure) {
         // Use fee structure if available
         if (capacity === 1) {
@@ -117,16 +118,18 @@ export async function GET() {
       );
 
     // Calculate total hostel fees (base hostel fees + room type fee)
-    const baseHostelFees = latestFeeStructure 
+    const baseHostelFees = latestFeeStructure
       ? latestFeeStructure.hostelFees
       : defaultBaseHostelFee;
-    
+
     const roomTypeFees = roomFee;
-    
+
     // Calculate mess fees from fee structure or use the payment amount
     const totalMessFees = latestFeeStructure
       ? latestFeeStructure.messFees
-      : messPayment?.amount ? Number(messPayment.amount) : defaultMessFee;
+      : messPayment?.amount
+      ? Number(messPayment.amount)
+      : defaultMessFee;
 
     let roomType = "Not Assigned";
     if (student.room) {
@@ -147,26 +150,36 @@ export async function GET() {
       name: student.user.name,
       email: student.user.email,
       rollNo: student.rollNo,
-      course: student.course,
+      course: student.course.name,
       contactNo: student.contactNo,
       roomNumber: student.room?.roomNumber,
       roomType,
-      hostelFees: showFees ? {
-        baseHostelFees: baseHostelFees,
-        roomTypeFees: roomTypeFees,
-        total: baseHostelFees + roomTypeFees,
-        paid: hostelPayment?.paidAmount ? Number(hostelPayment.paidAmount) : 0,
-        dueDate: hostelPayment?.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        status: hostelPayment?.status || "pending"
-      } : null,
-      messCharges: showFees ? {
-        total: totalMessFees,
-        paid: messPayment?.paidAmount ? Number(messPayment.paidAmount) : 0,
-        dueDate: messPayment?.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        status: messPayment?.status || "pending"
-      } : null,
+      hostelFees: showFees
+        ? {
+            baseHostelFees: baseHostelFees,
+            roomTypeFees: roomTypeFees,
+            total: baseHostelFees + roomTypeFees,
+            paid: hostelPayment?.paidAmount
+              ? Number(hostelPayment.paidAmount)
+              : 0,
+            dueDate:
+              hostelPayment?.dueDate ||
+              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            status: hostelPayment?.status || "pending",
+          }
+        : null,
+      messCharges: showFees
+        ? {
+            total: totalMessFees,
+            paid: messPayment?.paidAmount ? Number(messPayment.paidAmount) : 0,
+            dueDate:
+              messPayment?.dueDate ||
+              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            status: messPayment?.status || "pending",
+          }
+        : null,
       pendingQueries: pendingQueries.length,
-      attendance: 85 // You can add attendance tracking in your schema
+      attendance: 85, // You can add attendance tracking in your schema
     };
 
     return NextResponse.json(dashboardData);
@@ -177,4 +190,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}

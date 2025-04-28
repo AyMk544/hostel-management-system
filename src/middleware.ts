@@ -7,10 +7,11 @@ export default withAuth(
     const pathname = req.nextUrl.pathname;
 
     // Define public routes
-    const isPublicRoute = pathname === "/api/register";
+    const isPublicRoute1 = pathname === "/api/register";
+    const isPublicRoute2 = pathname === "/api/courses";
 
     // Skip middleware for public routes
-    if (isPublicRoute) {
+    if (isPublicRoute1 || isPublicRoute2) {
       return NextResponse.next();
     }
 

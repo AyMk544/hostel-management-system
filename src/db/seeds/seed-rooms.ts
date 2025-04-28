@@ -1,65 +1,39 @@
-import { v4 as uuidv4 } from "uuid";
-import { rooms } from "../schema";
-import type { DrizzleClient } from "../index";
+import { db } from "@/db"; // adjust if your db import is different
+import { rooms } from "@/db/schema"; // adjust path if needed
+import { v4 as uuidv4 } from "uuid"; // for random IDs
+import "dotenv/config"; // make sure envs are loaded
 
-export async function seedRooms(db: DrizzleClient) {
+async function seedRooms() {
+  const blocks = ["A", "B", "C", "D", "E"]; // possible blocks
+  const roomsData = [];
+
+  for (let i = 1; i <= 30; i++) {
+    const roomNumber = `${i.toString().padStart(3, "0")}`; // R001, R002, etc.
+    const capacity = Math.floor(Math.random() * 4) + 1; // random 1-4
+    const occupiedSeats = Math.floor(Math.random() * (capacity + 1)); // random between 0 and capacity
+    const floor = Math.floor(Math.random() * 5) + 1; // random 1-5 floors
+    const block = blocks[Math.floor(Math.random() * blocks.length)]; // random block
+    const is_active = Math.random() < 0.9; // 90% chance active
+
+    roomsData.push({
+      id: uuidv4(),
+      roomNumber,
+      capacity,
+      occupiedSeats,
+      floor,
+      block,
+      is_active,
+    });
+  }
+
   try {
-    // Define room types with their fees
-    const roomTypes = [
-      { capacity: 1, fees: 15000 }, // Single occupancy
-      { capacity: 2, fees: 12000 }, // Double occupancy
-      { capacity: 3, fees: 10000 }, // Triple occupancy
-    ];
-
-    // Create rooms across 4 floors
-    for (let floor = 1; floor <= 4; floor++) {
-      // Each floor has 10 rooms
-      for (let roomNum = 1; roomNum <= 10; roomNum++) {
-        // Alternate between room types
-        const roomType = roomTypes[(roomNum - 1) % roomTypes.length];
-        
-        // Format room number: Floor-RoomNumber (e.g., 101, 102, etc.)
-        const roomNumber = `${floor}${roomNum.toString().padStart(2, '0')}`;
-
-        await db.insert(rooms).values({
-          id: uuidv4(),
-          roomNumber,
-          capacity: roomType.capacity,
-          occupiedSeats: 0, // Start with empty rooms
-          fees: roomType.fees,
-          floor,
-          is_active: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
-    }
-
-    console.log("✅ Successfully seeded rooms data");
+    await db.insert(rooms).values(roomsData);
+    console.log("✅ 30 rooms seeded successfully!");
   } catch (error) {
-    console.error("Error seeding rooms:", error);
-    throw error;
+    console.error("❌ Error seeding rooms:", error);
+  } finally {
+    process.exit(0);
   }
 }
 
-// If running this script directly
-if (require.main === module) {
-  const { drizzle } = require("drizzle-orm/mysql2");
-  const mysql = require("mysql2/promise");
-  
-  async function main() {
-    const connection = await mysql.createConnection({
-      host: process.env.DATABASE_HOST || "localhost",
-      port: parseInt(process.env.DATABASE_PORT || "3306"),
-      user: process.env.DATABASE_USER || "root",
-      password: process.env.DATABASE_PASSWORD || "",
-      database: process.env.DATABASE_NAME || "hostel_management",
-    });
-
-    const db = drizzle(connection);
-    await seedRooms(db);
-    await connection.end();
-  }
-
-  main().catch(console.error);
-} 
+seedRooms();

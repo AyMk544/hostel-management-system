@@ -18,6 +18,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Loader2,
   User,
   Mail,
@@ -36,19 +43,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 
+// Updated schema to use courseId instead of course
 const registerSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
-    rollNo: z
-      .string()
-      .regex(
-        /^[A-Z]{3}\d{7}$/,
-        "Invalid roll number format (e.g., IIB2023001)"
-      ),
-    course: z.string().min(2, "Course name is required"),
+    rollNo: z.string(),
+    courseId: z.string().min(1, "Please select a course"),
     contactNo: z.string().regex(/^\d{10}$/, "Invalid contact number"),
     dateOfBirth: z.string().refine((date) => {
       const dob = new Date(date);
@@ -65,6 +68,12 @@ const registerSchema = z
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
+// Interface for course data
+interface Course {
+  id: string;
+  name: string;
+}
+
 // Registration stats (dummy data)
 const registrationStats = {
   totalStudents: 1250,
@@ -72,93 +81,6 @@ const registrationStats = {
   verificationRate: 92,
   averageAge: 21,
 };
-
-// Form field groups for better organization
-const formFields = [
-  {
-    title: "Personal Information",
-    fields: [
-      {
-        name: "name",
-        label: "Full Name",
-        type: "text",
-        placeholder: "John Doe",
-        icon: User,
-      },
-      {
-        name: "email",
-        label: "Email",
-        type: "email",
-        placeholder: "name@example.com",
-        icon: Mail,
-      },
-      {
-        name: "dateOfBirth",
-        label: "Date of Birth",
-        type: "date",
-        placeholder: "",
-        icon: Calendar,
-      },
-    ],
-  },
-  {
-    title: "Academic Information",
-    fields: [
-      {
-        name: "rollNo",
-        label: "Roll Number",
-        type: "text",
-        placeholder: "IIB2023001",
-        icon: BookOpen,
-      },
-      {
-        name: "course",
-        label: "Course",
-        type: "text",
-        placeholder: "B.Tech Computer Science",
-        icon: BookOpen,
-      },
-    ],
-  },
-  {
-    title: "Contact Information",
-    fields: [
-      {
-        name: "contactNo",
-        label: "Contact Number",
-        type: "text",
-        placeholder: "1234567890",
-        icon: Phone,
-      },
-      {
-        name: "address",
-        label: "Address",
-        type: "text",
-        placeholder: "Enter your full address",
-        icon: MapPin,
-      },
-    ],
-  },
-  {
-    title: "Security",
-    fields: [
-      {
-        name: "password",
-        label: "Password",
-        type: "password",
-        placeholder: "",
-        icon: Lock,
-      },
-      {
-        name: "confirmPassword",
-        label: "Confirm Password",
-        type: "password",
-        placeholder: "",
-        icon: CheckCircle,
-      },
-    ],
-  },
-];
 
 // Optimized component for the registration form
 const RegisterForm = React.memo(
@@ -171,22 +93,166 @@ const RegisterForm = React.memo(
     isLoading: boolean;
     error: string | null;
   }) => {
+    const [courses, setCourses] = React.useState<Course[]>([]);
+    const [isLoadingCourses, setIsLoadingCourses] = React.useState(true);
+    const [courseError, setCourseError] = React.useState<string | null>(null);
+
     const {
       register,
       handleSubmit,
+      setValue,
       watch,
       formState: { errors, dirtyFields },
     } = useForm<RegisterForm>({
       resolver: zodResolver(registerSchema),
     });
 
-    // Calculate form completion percentage
+    // Register the courseId field for react-hook-form
+    React.useEffect(() => {
+      register("courseId");
+    }, [register]);
+
+    // Fetch courses from API
+    React.useEffect(() => {
+      const fetchCourses = async () => {
+        try {
+          setIsLoadingCourses(true);
+          setCourseError(null);
+
+          const response = await fetch("/api/courses");
+
+          console.log(response);
+          if (!response.ok) {
+            throw new Error("Failed to fetch courses");
+          }
+
+          const data = await response.json();
+
+          const mockCourses: Course[] = [
+            { id: "1", name: "B.Tech Computer Science" },
+            { id: "2", name: "B.Tech Electronics" },
+            { id: "3", name: "B.Tech Mechanical" },
+            { id: "4", name: "B.Tech Civil" },
+            { id: "5", name: "M.Tech Computer Science" },
+            { id: "6", name: "M.Tech Electronics" },
+            { id: "7", name: "MBA" },
+            { id: "8", name: "BBA" },
+          ];
+
+          setCourses(data);
+        } catch (error) {
+          console.error("Failed to fetch courses:", error);
+          setCourseError("Failed to load courses. Please try again.");
+        } finally {
+          setIsLoadingCourses(false);
+        }
+      };
+
+      fetchCourses();
+    }, []);
+
     // Calculate form completion percentage
     const totalFields = Object.keys(registerSchema._def.schema.shape).length;
     const completedFields = Object.keys(dirtyFields).length;
     const completionPercentage = Math.round(
       (completedFields / totalFields) * 100
     );
+
+    // Form field groups for better organization
+    const formFields = [
+      {
+        title: "Personal Information",
+        fields: [
+          {
+            name: "name",
+            label: "Full Name",
+            type: "text",
+            placeholder: "John Doe",
+            icon: User,
+            component: "input",
+          },
+          {
+            name: "email",
+            label: "Email",
+            type: "email",
+            placeholder: "name@example.com",
+            icon: Mail,
+            component: "input",
+          },
+          {
+            name: "dateOfBirth",
+            label: "Date of Birth",
+            type: "date",
+            placeholder: "",
+            icon: Calendar,
+            component: "input",
+          },
+        ],
+      },
+      {
+        title: "Academic Information",
+        fields: [
+          {
+            name: "rollNo",
+            label: "Roll Number",
+            type: "text",
+            placeholder: "IIB2023001",
+            icon: BookOpen,
+            component: "input",
+          },
+          {
+            name: "courseId",
+            label: "Course",
+            type: "select",
+            placeholder: "Select your course",
+            icon: BookOpen,
+            component: "select",
+          },
+        ],
+      },
+      {
+        title: "Contact Information",
+        fields: [
+          {
+            name: "contactNo",
+            label: "Contact Number",
+            type: "text",
+            placeholder: "1234567890",
+            icon: Phone,
+            component: "input",
+          },
+          {
+            name: "address",
+            label: "Address",
+            type: "text",
+            placeholder: "Enter your full address",
+            icon: MapPin,
+            component: "input",
+          },
+        ],
+      },
+      {
+        title: "Security",
+        fields: [
+          {
+            name: "password",
+            label: "Password",
+            type: "password",
+            placeholder: "",
+            icon: Lock,
+            component: "input",
+          },
+          {
+            name: "confirmPassword",
+            label: "Confirm Password",
+            type: "password",
+            placeholder: "",
+            icon: CheckCircle,
+            component: "input",
+          },
+        ],
+      },
+    ];
 
     return (
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -221,19 +287,65 @@ const RegisterForm = React.memo(
                     <Label htmlFor={field.name} className="text-sm font-medium">
                       {field.label}
                     </Label>
-                    <div className="relative">
-                      <Icon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id={field.name}
-                        placeholder={field.placeholder}
-                        type={field.type}
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        disabled={isLoading}
-                        className="pl-9 bg-gray-950 border-gray-800 focus:border-emerald-800 focus:ring-emerald-500/20"
-                        {...register(field.name as keyof RegisterForm)}
-                      />
-                    </div>
+
+                    {field.component === "input" ? (
+                      <div className="relative">
+                        <Icon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id={field.name}
+                          placeholder={field.placeholder}
+                          type={field.type}
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          disabled={isLoading}
+                          className="pl-9 bg-gray-950 border-gray-800 focus:border-emerald-800 focus:ring-emerald-500/20"
+                          {...register(field.name as keyof RegisterForm)}
+                        />
+                      </div>
+                    ) : field.name === "courseId" ? (
+                      <div className="relative">
+                        <Icon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                        <Select
+                          disabled={isLoading || isLoadingCourses}
+                          onValueChange={(value) =>
+                            setValue("courseId", value, { shouldDirty: true })
+                          }
+                        >
+                          <SelectTrigger className="pl-9 bg-gray-950 border-gray-800 focus:border-emerald-800 focus:ring-emerald-500/20">
+                            <SelectValue
+                              placeholder={
+                                isLoadingCourses
+                                  ? "Loading courses..."
+                                  : "Select your course"
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-950 border-gray-800">
+                            {courseError ? (
+                              <div className="p-2 text-sm text-red-400">
+                                {courseError}
+                              </div>
+                            ) : isLoadingCourses ? (
+                              <div className="flex items-center justify-center p-2">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <span>Loading courses...</span>
+                              </div>
+                            ) : courses.length === 0 ? (
+                              <div className="p-2 text-sm text-muted-foreground">
+                                No courses available
+                              </div>
+                            ) : (
+                              courses.map((course) => (
+                                <SelectItem key={course.id} value={course.id}>
+                                  {course.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null}
+
                     {errors[field.name as keyof RegisterForm] && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
@@ -260,7 +372,7 @@ const RegisterForm = React.memo(
 
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || isLoadingCourses}
           className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white"
         >
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

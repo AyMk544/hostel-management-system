@@ -2,50 +2,55 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
-import { studentProfiles, users, rooms, payments } from "@/db/schema";
+import {
+  studentProfiles,
+  users,
+  rooms,
+  payments,
+  courses, // ← import courses
+} from "@/db/schema";
 import { eq, sql, and, gte, lte } from "drizzle-orm";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
 
-    // Check if user is authenticated and is an admin
+    // Only admins allowed
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get current month for filtering payments
-    const currentDate = new Date();
-    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    // Calculate current month window
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // Get all students with their details
+    // Fetch students + user, room, course.name
     const students = await db
       .select({
         id: users.id,
         name: users.name,
         email: users.email,
         rollNumber: studentProfiles.rollNo,
-        course: studentProfiles.course,
+        course: courses.name,
+        courseId: studentProfiles.courseId, // ← pull in human-readable name
         contactNumber: studentProfiles.contactNo,
         roomNumber: rooms.roomNumber,
       })
       .from(users)
       .innerJoin(studentProfiles, eq(users.id, studentProfiles.userId))
+      .innerJoin(
+        courses,
+        eq(studentProfiles.courseId, courses.id) // ← join on the FK
+      )
       .leftJoin(rooms, eq(studentProfiles.roomId, rooms.id))
       .where(eq(users.role, "student"));
 
-    // For each student, get their payment status
+    // Attach this month's hostel/mess status
     const studentsWithPaymentInfo = await Promise.all(
       students.map(async (student) => {
-        // Get hostel payment
-        const [hostelPayment] = await db
-          .select({
-            status: payments.status,
-          })
+        const [hostel] = await db
+          .select({ status: payments.status })
           .from(payments)
           .where(
             and(
@@ -56,11 +61,8 @@ export async function GET() {
             )
           );
 
-        // Get mess payment
-        const [messPayment] = await db
-          .select({
-            status: payments.status,
-          })
+        const [mess] = await db
+          .select({ status: payments.status })
           .from(payments)
           .where(
             and(
@@ -73,15 +75,15 @@ export async function GET() {
 
         return {
           ...student,
-          hostelFeeStatus: hostelPayment?.status || "pending",
-          messFeeStatus: messPayment?.status || "pending",
+          hostelFeeStatus: hostel?.status ?? "pending",
+          messFeeStatus: mess?.status ?? "pending",
         };
       })
     );
 
     return NextResponse.json(studentsWithPaymentInfo);
-  } catch (error) {
-    console.error("[STUDENTS_GET]", error);
+  } catch (err) {
+    console.error("[STUDENTS_GET]", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -89,16 +91,15 @@ export async function GET() {
   }
 }
 
+// … your PUT handler remains unchanged …
+
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
     // Check if user is authenticated and is an admin
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get student ID from query params
@@ -151,7 +152,6 @@ export async function PUT(request: Request) {
       await tx
         .update(studentProfiles)
         .set({
-          course: data.course,
           contactNo: data.contactNo,
           dateOfBirth: new Date(data.dateOfBirth),
           address: data.address,
@@ -179,4 +179,4 @@ export async function PUT(request: Request) {
       { status: 500 }
     );
   }
-} 
+}

@@ -23,6 +23,14 @@ export const users = mysqlTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 
+// Courses table
+export const courses = mysqlTable("courses", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
 // Student profiles with additional details
 export const studentProfiles = mysqlTable("student_profiles", {
   id: varchar("id", { length: 255 }).primaryKey(),
@@ -30,7 +38,9 @@ export const studentProfiles = mysqlTable("student_profiles", {
     .notNull()
     .references(() => users.id),
   rollNo: varchar("roll_no", { length: 20 }).unique().notNull(),
-  course: varchar("course", { length: 100 }).notNull(),
+  courseId: varchar("course_id", { length: 255 })
+    .notNull()
+    .references(() => courses.id),
   contactNo: varchar("contact_no", { length: 20 }).notNull(),
   dateOfBirth: timestamp("date_of_birth").notNull(),
   address: text("address").notNull(),
@@ -111,12 +121,20 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   queries: many(queries),
 }));
 
+export const coursesRelations = relations(courses, ({ many }) => ({
+  students: many(studentProfiles),
+}));
+
 export const studentProfilesRelations = relations(
   studentProfiles,
   ({ one }) => ({
     user: one(users, {
       fields: [studentProfiles.userId],
       references: [users.id],
+    }),
+    course: one(courses, {
+      fields: [studentProfiles.courseId],
+      references: [courses.id],
     }),
     room: one(rooms, {
       fields: [studentProfiles.roomId],

@@ -66,26 +66,27 @@ export default function RoomsPage() {
     try {
       const response = await fetch("/api/admin/rooms");
       if (!response.ok) throw new Error("Failed to fetch rooms");
-      const data = await response.json();
+      const data: Room[] = await response.json();
       setRooms(data);
 
-      // Calculate stats
-      const total = data.length;
-      const occupied = data.filter((r: Room) => r.occupiedSeats > 0).length;
-      const totalCapacity = data.reduce(
-        (acc: number, room: Room) => acc + room.capacity,
-        0
-      );
-      const totalOccupancy = data.reduce(
-        (acc: number, room: Room) => acc + room.occupiedSeats,
+      const activeRooms = data.filter((room) => room.is_active === true);
+
+      // count of active rooms
+      const activeRoomCount = activeRooms.length;
+
+      // sum of occupied seats in active rooms (if you still need it)
+      const totalOccupancy = activeRooms.reduce(
+        (acc, room) => acc + room.occupiedSeats,
         0
       );
 
       setStats({
-        total,
-        occupied,
-        available: total - occupied,
-        occupancyRate: Math.round((totalOccupancy / totalCapacity) * 100),
+        total: data.length, // all rooms
+        occupied: totalOccupancy, // total occupied seats in active rooms
+        available: activeRoomCount, // <-- number of rooms where is_active === 1
+        occupancyRate: Number(
+          ((totalOccupancy / (activeRoomCount || 1)) * 100).toFixed(1)
+        ),
       });
     } catch (error) {
       console.error("Error fetching rooms:", error);

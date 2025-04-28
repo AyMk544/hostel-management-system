@@ -5,14 +5,14 @@ import { users, studentProfiles, rooms } from "@/db/schema";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { verificationTokens } from "@/db/schema";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
   rollNo: z.string().regex(/^[A-Z]{3}\d{7}$/),
-  course: z.string().min(2),
+  courseId: z.string().min(2),
   contactNo: z.string().regex(/^\d{10}$/),
   dateOfBirth: z.string(),
   address: z.string().min(10),
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
           id: uuidv4(),
           userId: userId,
           rollNo: data.rollNo,
-          course: data.course,
+          courseId: data.courseId,
           contactNo: data.contactNo,
           dateOfBirth: new Date(data.dateOfBirth),
           address: data.address,
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
           id: uuidv4(),
           userId: userId,
           rollNo: data.rollNo,
-          course: data.course,
+          courseId: data.courseId,
           contactNo: data.contactNo,
           dateOfBirth: new Date(data.dateOfBirth),
           address: data.address,

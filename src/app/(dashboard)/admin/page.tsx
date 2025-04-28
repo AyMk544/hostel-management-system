@@ -314,7 +314,7 @@ export default async function AdminDashboard() {
   );
 }
 
-export async function getStatsDirectly() {
+async function getStatsDirectly() {
   try {
     // Get total students count
     const [studentsCount] = await db

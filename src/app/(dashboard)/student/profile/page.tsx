@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,27 +36,20 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
-import { useDebouncedCallback } from "use-debounce";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface StudentProfile {
+interface Course {
+  id: string;
   name: string;
-  email: string;
-  rollNo: string;
-  course: string;
-  contactNo: string;
-  dateOfBirth: string;
-  address: string;
-  avatar?: string;
 }
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   rollNo: z.string().min(1, "Roll number is required"),
-  course: z.string().min(1, "Course is required"),
+  courseId: z.string().min(1, "Course is required"),
   contactNo: z.string().min(10, "Contact number must be at least 10 digits"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   address: z.string().min(10, "Address must be at least 10 characters"),
@@ -64,12 +63,16 @@ export default function ProfilePage() {
     "saved" | "saving" | "error" | null
   >(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [courseName, setCourseName] = useState<string>("");
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -78,60 +81,85 @@ export default function ProfilePage() {
   // Watch all form fields for changes
   const formValues = watch();
 
-  // Debounced save function
-  const debouncedSave = useDebouncedCallback(async (data: ProfileFormData) => {
-    if (!isDirty) return;
-
-    setSaveStatus("saving");
-    try {
-      // In a real app, this would be an API call
-      // await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
-
-      // Simulate API call
-      const response = await fetch("/api/student/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      setSaveStatus("saved");
-      toast.success("Changes saved successfully", {
-        description: "Your profile information has been updated.",
-        icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
-      });
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      setSaveStatus("error");
-      toast.error("Failed to save changes", {
-        description: "Please try again later.",
-        icon: <AlertCircle className="h-4 w-4 text-red-500" />,
-      });
-    }
-  }, 1000); // 1 second delay
-
-  // Auto-save when form values change
+  // Fetch courses
   useEffect(() => {
-    if (isDirty) {
-      const validationResult = profileSchema.safeParse(formValues);
-      if (validationResult.success) {
-        debouncedSave(formValues);
+    const fetchCourses = async () => {
+      try {
+        setIsLoadingCourses(true);
+        const response = await fetch("/api/courses");
+        const data = await response.json();
+        setCourses(data);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        toast.error("Failed to load courses", {
+          description: "Please try refreshing the page.",
+          icon: <AlertCircle className="h-4 w-4 text-red-500" />,
+        });
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  // Register courseId field
+  useEffect(() => {
+    register("courseId");
+  }, [register]);
+
+  // Update courseName when courseId changes
+  useEffect(() => {
+    if (formValues.courseId && courses.length > 0) {
+      const selectedCourse = courses.find(
+        (course) => course.id === formValues.courseId
+      );
+      if (selectedCourse) {
+        setCourseName(selectedCourse.name);
       }
     }
-  }, [formValues, isDirty, debouncedSave]);
+  }, [formValues.courseId, courses]);
 
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  // Add this effect to update courseName whenever courses load
+  useEffect(() => {
+    if (formValues.courseId && courses.length > 0) {
+      const selectedCourse = courses.find(
+        (course) => course.id === formValues.courseId
+      );
+      if (selectedCourse) {
+        setCourseName(selectedCourse.name);
+      }
+    }
+  }, [courses, formValues.courseId]);
 
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
       const response = await fetch("/api/student/profile");
       const data = await response.json();
+      console.log("profile fetched data: ", data);
 
-      reset(data);
+      // Set the courseId and update the form
+      reset({
+        name: data.name,
+        email: data.email,
+        rollNo: data.rollNo,
+        courseId: data.courseId,
+        contactNo: data.contactNo,
+        dateOfBirth: data.dateOfBirth,
+        address: data.address,
+      });
+
+      console.log("Course id = ", data.courseId);
+
+      // Store the course name for display
+      if (data.courseName) {
+        setCourseName(data.courseName);
+      }
     } catch (error) {
       console.error("Error fetching profile:", error);
       toast.error("Failed to load profile", {
@@ -149,8 +177,39 @@ export default function ProfilePage() {
     setIsRefreshing(false);
   };
 
-  const onSubmit = (data: ProfileFormData) => {
-    debouncedSave(data);
+  const onSubmit = async (data: ProfileFormData) => {
+    if (!isDirty) return;
+
+    setSaveStatus("saving");
+    try {
+      const response = await fetch("/api/student/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      console.log("Profile response: ", response);
+
+      setSaveStatus("saved");
+      toast.success("Changes saved successfully", {
+        description: "Your profile information has been updated.",
+        icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setSaveStatus("error");
+      toast.error("Failed to save changes", {
+        description: "Please try again later.",
+        icon: <AlertCircle className="h-4 w-4 text-red-500" />,
+      });
+    } finally {
+      // Reset the save status after a delay
+      setTimeout(() => {
+        setSaveStatus(null);
+      }, 3000);
+    }
   };
 
   const getInitials = (name: string) => {
@@ -215,7 +274,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Course:</span>
-                <span className="font-medium">{formValues.course}</span>
+                <span className="font-medium">{courseName}</span>
               </div>
               <Separator className="my-2 bg-gray-800" />
               <div className="flex items-center justify-between text-sm">
@@ -342,20 +401,58 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="course" className="flex items-center gap-2">
+                  <Label htmlFor="courseId" className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-emerald-400" />
                     <span>Course</span>
                   </Label>
-                  <Input
-                    id="course"
-                    {...register("course")}
-                    placeholder="B.Tech Computer Science"
-                    className="bg-gray-950 border-gray-800 focus:border-emerald-500 focus:ring-emerald-500/20"
-                  />
-                  {errors.course && (
+                  <div className="relative">
+                    <BookOpen className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                    <Select
+                      value={formValues.courseId}
+                      onValueChange={(value) => {
+                        setValue("courseId", value, { shouldDirty: true });
+                        const selectedCourse = courses.find(
+                          (course) => course.id === value
+                        );
+                        if (selectedCourse) {
+                          setCourseName(selectedCourse.name);
+                        }
+                      }}
+                      disabled={isLoadingCourses}
+                    >
+                      <SelectTrigger className="pl-9 bg-gray-950 border-gray-800 focus:border-emerald-500 focus:ring-emerald-500/20">
+                        <SelectValue
+                          placeholder={
+                            isLoadingCourses
+                              ? "Loading courses..."
+                              : "Select your course"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-950 border-gray-800">
+                        {isLoadingCourses ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span>Loading courses...</span>
+                          </div>
+                        ) : courses.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">
+                            No courses available
+                          </div>
+                        ) : (
+                          courses.map((course) => (
+                            <SelectItem key={course.id} value={course.id}>
+                              {course.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {errors.courseId && (
                     <p className="text-sm text-red-400 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {errors.course.message}
+                      {errors.courseId.message}
                     </p>
                   )}
                 </div>

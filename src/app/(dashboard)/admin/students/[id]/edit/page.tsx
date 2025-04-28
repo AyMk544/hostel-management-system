@@ -78,7 +78,7 @@ const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   rollNo: z.string().min(1, "Roll number is required"),
-  course: z.string().min(1, "Course is required"),
+  course: z.string().optional(),
   contactNo: z.string().min(10, "Contact number must be at least 10 digits"),
   dateOfBirth: z.string().min(1, "Date of birth is required"),
   address: z.string().min(10, "Address must be at least 10 characters"),
@@ -167,6 +167,7 @@ export default function StudentManagementPage() {
   const onSubmit = async (data: ProfileFormData) => {
     setIsSaving(true);
     try {
+      console.log("Form submitted");
       // Only send the roomId in the update
       const response = await fetch(`/api/admin/students/${params.id}`, {
         method: "PUT",
@@ -406,7 +407,12 @@ export default function StudentManagementPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={handleSubmit(onSubmit, (formErrors) =>
+                  console.log("Validation errors:", formErrors)
+                )}
+                className="space-y-6"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>

@@ -31,7 +31,7 @@ export async function GET(
         name: users.name,
         email: users.email,
         rollNo: studentProfiles.rollNo,
-        course: studentProfiles.course,
+        courseId: studentProfiles.courseId,
         contactNo: studentProfiles.contactNo,
         dateOfBirth: studentProfiles.dateOfBirth,
         address: studentProfiles.address,
