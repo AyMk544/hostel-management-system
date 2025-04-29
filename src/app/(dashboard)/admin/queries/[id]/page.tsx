@@ -80,6 +80,7 @@ export default function QueryPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("submit started");
 
     if (status === "resolved" && !response.trim()) {
       toast.error("Please provide a response before marking as resolved");
@@ -92,7 +93,7 @@ export default function QueryPage() {
         method: "PUT",
         body: JSON.stringify({
           status,
-          adminResponse: status === "resolved" ? response : undefined,
+          adminResponse: response,
         }),
       });
 

@@ -53,17 +53,15 @@ export async function POST(req: Request) {
     const validatedData = querySchema.parse(body);
     const queryId = uuidv4();
 
-    await db
-      .insert(queries)
-      .values({
-        id: queryId,
-        studentId: session.user.id,
-        title: validatedData.title,
-        description: validatedData.description,
-        status: "pending",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+    await db.insert(queries).values({
+      id: queryId,
+      studentId: session.user.id,
+      title: validatedData.title,
+      description: validatedData.description,
+      status: "pending",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     // Fetch the created query
     const [createdQuery] = await db
@@ -80,4 +78,4 @@ export async function POST(req: Request) {
     console.error("[STUDENT_QUERIES_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
-} 
+}

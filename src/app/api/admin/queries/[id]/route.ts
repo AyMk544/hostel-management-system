@@ -21,10 +21,7 @@ export async function GET(
 
     // Check if user is authenticated and is an admin
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await context.params;
@@ -47,10 +44,7 @@ export async function GET(
       .where(eq(queries.id, id));
 
     if (!result.length) {
-      return NextResponse.json(
-        { error: "Query not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Query not found" }, { status: 404 });
     }
 
     return NextResponse.json(result[0]);
@@ -73,18 +67,15 @@ export async function PUT(
 
     // Check if user is authenticated and is an admin
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await context.params;
     const body = await request.json();
-    
+
     // Validate input
     const validatedData = updateQuerySchema.parse(body);
-    
+
     // Check if query exists
     const existingQuery = await db
       .select()
@@ -92,14 +83,14 @@ export async function PUT(
       .where(eq(queries.id, id));
 
     if (!existingQuery.length) {
-      return NextResponse.json(
-        { error: "Query not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Query not found" }, { status: 404 });
     }
 
     // If marking as resolved, require an admin response
-    if (validatedData.status === "resolved" && !validatedData.adminResponse?.trim()) {
+    if (
+      validatedData.status === "resolved" &&
+      !validatedData.adminResponse?.trim()
+    ) {
       return NextResponse.json(
         { error: "Admin response is required when resolving a query" },
         { status: 400 }
@@ -117,21 +108,21 @@ export async function PUT(
       .where(eq(queries.id, id));
 
     return NextResponse.json({
-      message: "Query updated successfully"
+      message: "Query updated successfully",
     });
   } catch (error) {
     console.error("[QUERY_UPDATE]", error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid data", details: error.errors },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-} 
+}
