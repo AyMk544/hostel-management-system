@@ -70,6 +70,8 @@ A modern web application for managing hostel operations, built with Next.js, Rea
 Create a `.env` file in the root directory with the following variables:
 
 ```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
 # Database Configuration
 DATABASE_HOST=localhost
 DATABASE_PORT=3306
@@ -115,6 +117,10 @@ npm run db:init
 ```bash
 npm run db:push
 ```
+
+npx tsx src/db/seeds/seed-admin.ts
+npx tsx src/db/seeds/seed-rooms.ts
+npx tsx src/db/seeds/seed-courses.ts
 
 5. Start the development server:
 
